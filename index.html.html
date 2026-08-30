@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clarity Map</title>
+<style>
+  :root {
+    --cream: #F6EEE3;
+    --maroon: #4A1F17;
+    --terracotta: #C1602A;
+    --terracotta-dark: #8F4620;
+    --green-bg: #EAF3DE; --green-text: #27500A; --green-mid:#639922;
+    --amber-bg: #FAEEDA; --amber-text: #633806; --amber-mid:#BA7517;
+    --red-bg: #FCEBEB; --red-text: #501313; --red-mid:#A32D2D;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    background: var(--cream);
+    color: var(--maroon);
+    margin: 0;
+    padding: 2rem 1.25rem 3rem;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; }
+  h1 {
+    font-size: 24px;
+    font-weight: normal;
+    margin: 0 0 4px;
+    letter-spacing: 0.2px;
+  }
+  .sub {
+    font-size: 14px;
+    color: var(--terracotta-dark);
+    margin: 0 0 2rem;
+    font-style: italic;
+  }
+  .area { margin-bottom: 1.75rem; }
+  .area-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 4px;
+  }
+  .area-name { font-size: 16px; font-weight: bold; }
+  .area-rating { font-size: 13px; color: var(--terracotta-dark); }
+  .area-desc {
+    font-size: 13px;
+    color: #6b5248;
+    margin: 0 0 8px;
+    font-family: -apple-system, Helvetica, Arial, sans-serif;
+  }
+  input[type=range] {
+    width: 100%;
+    accent-color: var(--terracotta);
+    height: 20px;
+  }
+  button {
+    font-family: -apple-system, Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    padding: 12px 16px;
+    border-radius: 6px;
+    border: 1px solid var(--terracotta);
+    background: white;
+    color: var(--terracotta-dark);
+    cursor: pointer;
+    width: 100%;
+    margin-top: 6px;
+  }
+  button.primary {
+    background: var(--terracotta);
+    color: white;
+    border: none;
+  }
+  button:hover { opacity: 0.9; }
+  .actions {
+    display: none;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .actions.show { display: flex; }
+  #result {
+    display: none;
+    margin-top: 2rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: 10px;
+    font-family: -apple-system, Helvetica, Arial, sans-serif;
+  }
+  #result .eyebrow { font-size: 12px; margin: 0 0 4px; }
+  #result h2 { font-size: 19px; margin: 0 0 8px; font-family: Georgia, serif; font-weight: normal; }
+  #result p.next { font-size: 14px; line-height: 1.5; margin: 0; }
+  .note {
+    font-size: 12px;
+    color: #6b5248;
+    font-family: -apple-system, Helvetica, Arial, sans-serif;
+    margin-top: 10px;
+    line-height: 1.5;
+  }
+  @media print {
+    body { padding: 0.5in; background: white; }
+    .no-print { display: none !important; }
+    #result { border: 1px solid #ccc; }
+    input[type=range] { display: none; }
+    .area-desc { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Clarity Map</h1>
+  <p class="sub">Rate each area from 1 (managing well) to 5 (frequent or serious concern), based on what you've actually observed.</p>
+
+  <div id="areas"></div>
+
+  <button class="primary no-print" id="submit">See the zone</button>
+
+  <div id="result"></div>
+
+  <div class="actions no-print" id="actions">
+    <button id="printBtn">Print or save as PDF</button>
+    <button id="emailBtn">Email these results</button>
+  </div>
+  <p class="note no-print" id="emailNote" style="display:none;">
+    This opens your own email app with the results filled in — nothing is sent from this page or stored anywhere. Add whoever you want to loop in (yourself, a sibling, another family member) before sending.
+  </p>
+</div>
+
+<script>
+const areas = [
+  {key:'cog', name:'Cognitive function', desc:"Memory, orientation to time, confusion or repeated questions."},
+  {key:'phys', name:'Physical health', desc:"Balance, mobility, falls or near-falls, energy."},
+  {key:'emo', name:'Emotional health', desc:"Mood, withdrawal, anxiety, loneliness."},
+  {key:'env', name:'Environment and safety', desc:"Home hazards, driving, wandering, ability to respond in an emergency."},
+  {key:'daily', name:'Daily living tasks', desc:"Meals, medications, bills, hygiene, housekeeping."}
+];
+
+const ratingLabels = {1:'Managing well', 2:'Mostly fine', 3:'Some struggle', 4:'Struggling often', 5:'Frequent or serious concern'};
+
+const container = document.getElementById('areas');
+areas.forEach(a => {
+  const row = document.createElement('div');
+  row.className = 'area';
+  row.innerHTML = `
+    <div class="area-top">
+      <span class="area-name">${a.name}</span>
+      <span class="area-rating" id="${a.key}-label">Some struggle</span>
+    </div>
+    <p class="area-desc">${a.desc}</p>
+    <input type="range" min="1" max="5" step="1" value="3" id="${a.key}">
+  `;
+  container.appendChild(row);
+  document.getElementById(a.key).addEventListener('input', e => {
+    document.getElementById(a.key + '-label').textContent = ratingLabels[e.target.value];
+  });
+});
+
+const zones = {
+  1: {name:'Zone 1 — stable and independent', bg:'var(--green-bg)', text:'var(--green-text)', mid:'var(--green-mid)',
+      next:"Maintain current routines. Consider light, proactive supports before they become necessary, and use this calm period for early conversations about future preferences."},
+  2: {name:'Zone 2 — needs some support', bg:'var(--amber-bg)', text:'var(--amber-text)', mid:'var(--amber-mid)',
+      next:"Explore non-medical home care or adult day programs. This is a good time to start the care conversation with your parent and align as a family."},
+  3: {name:'Zone 3 — at risk or unsafe', bg:'var(--red-bg)', text:'var(--red-text)', mid:'var(--red-mid)',
+      next:"Begin actively evaluating assisted living, memory care, or home health services. The urgency is real, but so is moving thoughtfully rather than reactively."}
+};
+
+let lastSummary = null;
+
+document.getElementById('submit').addEventListener('click', () => {
+  let worst = 1;
+  let worstArea = areas[0].name;
+  const lines = [];
+  areas.forEach(a => {
+    const v = parseInt(document.getElementById(a.key).value, 10);
+    lines.push(a.name + ': ' + v + ' (' + ratingLabels[v] + ')');
+    if (v > worst) { worst = v; worstArea = a.name; }
+  });
+  const zoneNum = worst <= 2 ? 1 : (worst <= 4 ? 2 : 3);
+  const z = zones[zoneNum];
+
+  const result = document.getElementById('result');
+  result.style.background = z.bg;
+  result.style.display = 'block';
+  result.innerHTML = `
+    <p class="eyebrow" style="color:${z.mid};">Based on your highest-concern area: ${worstArea}</p>
+    <h2 style="color:${z.text};">${z.name}</h2>
+    <p class="next" style="color:${z.text};">${z.next}</p>
+  `;
+
+  document.getElementById('actions').classList.add('show');
+  document.getElementById('emailNote').style.display = 'block';
+
+  lastSummary = {
+    lines: lines,
+    zoneName: z.name,
+    zoneNext: z.next
+  };
+});
+
+document.getElementById('printBtn').addEventListener('click', () => {
+  window.print();
+});
+
+document.getElementById('emailBtn').addEventListener('click', () => {
+  if (!lastSummary) return;
+  const subject = 'Clarity Map results';
+  const bodyLines = [
+    'Here are the Clarity Map results:',
+    '',
+    ...lastSummary.lines,
+    '',
+    'Result: ' + lastSummary.zoneName,
+    lastSummary.zoneNext
+  ];
+  const body = bodyLines.join('\n');
+  const mailto = 'mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+  window.location.href = mailto;
+});
+</script>
+</body>
+</html>
